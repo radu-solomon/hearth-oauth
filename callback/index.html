@@ -3,8 +3,9 @@
   Hearth - Withings OAuth callback page.
 
   Withings redirects here after sign-in. With a code (and no error), the page shows the code with a
-  Copy button and forwards the browser, with every query parameter, to Hearth's local listener at
-  http://localhost:8765/withings/callback. It loads nothing else and sends no requests.
+  Copy button. With AUTO_FORWARD on (in the script; off for now), it also forwards the browser, with
+  every query parameter, to Hearth's local listener at http://localhost:8765/withings/callback.
+  It loads nothing else and sends no requests.
 
   Adapted from withings-sync's contrib/withings.html
   (https://github.com/jaroslawhartman/withings-sync, maintained by Jaroslaw Hartman),
@@ -41,41 +42,71 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>Hearth - Withings sign-in</title>
 <style>
+  /* Hearth palette: values copied from frontend/src/index.css (the @theme slate and sky remap, --app-bg,
+     the focus ring) and Tailwind's red-50/200/800/950 for the error box, as on the log-in screen.
+     The page cannot read the app's theme choice, so dark mode follows prefers-color-scheme. */
   :root {
     color-scheme: light dark;
-    --bg: #f7f7f5;
-    --fg: #1f1f1c;
-    --muted: #5f5f58;
-    --border: #d4d4ce;
+    --app-bg: #faf8fc;
+    --card: #ffffff;
+    --card-border: #e7e0ee;
+    --text: #302638;
+    --muted: #6e627b;
     --field: #ffffff;
-    --accent: #2f6f5e;
-    --accent-fg: #ffffff;
+    --field-border: #d5cadd;
+    --field-focus: #9674bb;
+    --primary: #79599e;
+    --primary-hover: #62477f;
+    --primary-text: #ffffff;
+    --link: #62477f;
+    --focus-ring: #a98acb;
+    --error-bg: oklch(97.1% 0.013 17.38);
+    --error-text: oklch(44.4% 0.177 26.899);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #161614;
-      --fg: #ececea;
-      --muted: #a3a39c;
-      --border: #3a3a36;
-      --field: #22221f;
-      --accent: #7cc4ad;
-      --accent-fg: #10231d;
+      --app-bg: #17131d;
+      --card: #302638;
+      --card-border: #564b63;
+      --text: #f3eff7;
+      --muted: #b2a6bf;
+      --field: #3f354b;
+      --field-border: #6e627b;
+      --link: #b394d2;
+      --error-bg: oklch(25.8% 0.092 26.042);
+      --error-text: oklch(88.5% 0.062 18.334);
     }
   }
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--app-bg);
+    color: var(--text);
+    font-family: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
     line-height: 1.5;
   }
   main {
-    max-width: 34rem;
-    margin: 0 auto;
-    padding: 3rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1.5rem 1rem;
+    box-sizing: border-box;
+  }
+  .card {
+    width: 100%;
+    max-width: 24rem;
+    box-sizing: border-box;
+    padding: 1.5rem;
+    border: 1px solid var(--card-border);
+    border-radius: 0.5rem;
+    background: var(--card);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
   h1 {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
     margin: 0 0 1rem;
   }
   p {
@@ -83,9 +114,22 @@
   }
   .muted {
     color: var(--muted);
+    font-size: 0.875rem;
   }
   code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  a {
+    color: var(--link);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 3px;
   }
   .code-row {
     display: flex;
@@ -95,47 +139,71 @@
   .code-row input {
     flex: 1;
     min-width: 0;
-    padding: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--field-border);
+    border-radius: 0.375rem;
     background: var(--field);
-    color: var(--fg);
+    color: var(--text);
     font: 1rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .code-row input:focus {
+    border-color: var(--field-focus);
   }
   button,
   .button {
     padding: 0.5rem 1rem;
-    border: 1px solid var(--accent);
-    border-radius: 6px;
-    background: var(--accent);
-    color: var(--accent-fg);
+    border: 0;
+    border-radius: 0.375rem;
+    background: var(--primary);
+    color: var(--primary-text);
     font: inherit;
+    font-weight: 500;
     text-decoration: none;
     cursor: pointer;
+  }
+  button:hover,
+  .button:hover {
+    background: var(--primary-hover);
+    text-decoration: none;
   }
   .copy-status {
     min-height: 1.5rem;
     margin: 0 0 1rem;
     color: var(--muted);
+    font-size: 0.875rem;
+  }
+  .error-box {
+    margin: 0 0 1rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    background: var(--error-bg);
+    color: var(--error-text);
+    font-size: 0.875rem;
+  }
+  .error-box p {
+    margin: 0;
   }
   label {
     display: block;
     margin: 0 0 0.25rem;
-    font-weight: 600;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
   footer {
-    margin-top: 2rem;
-    font-size: 0.85rem;
+    margin-top: 1rem;
+    font-size: 0.75rem;
   }
 </style>
 </head>
 <body>
 <main>
+  <div class="card">
   <noscript><p>This page needs JavaScript to read the code Withings sent.</p></noscript>
 
   <section id="state-code" hidden>
     <h1>Your Withings authorization code</h1>
     <p id="forwarding">Sending you back to Hearth on this computer.</p>
+    <p id="paste-hint">Copy this code and paste it into Hearth.</p>
     <p id="not-forwarded" hidden>Hearth did not pick up the code automatically. Copy it and paste it into the <code>login withings</code> prompt, or press Continue to Hearth to try again.</p>
     <label for="code">Authorization code</label>
     <div class="code-row">
@@ -144,14 +212,16 @@
     </div>
     <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
     <p>The code expires in about 30 seconds.</p>
-    <p>If your browser cannot connect, go back to this page and paste the code into the <code>login withings</code> prompt.</p>
-    <p><a id="continue" class="button">Continue to Hearth</a></p>
+    <p id="cannot-connect">If your browser cannot connect, go back to this page and paste the code into the <code>login withings</code> prompt.</p>
+    <p id="continue-row"><a id="continue" class="button">Continue to Hearth</a></p>
   </section>
 
   <section id="state-error" hidden>
     <h1>Withings did not authorize Hearth</h1>
-    <p>Withings returned the error <code id="error-value"></code>.</p>
-    <p id="error-description" class="muted" hidden></p>
+    <div class="error-box">
+      <p>Withings returned the error <code id="error-value"></code>.</p>
+      <p id="error-description" hidden></p>
+    </div>
     <p>Run <code>login withings</code> again to retry.</p>
   </section>
 
@@ -160,12 +230,16 @@
     <p>Withings opens this page during <code>login withings</code> in Hearth; there is nothing to do here otherwise.</p>
   </section>
 
+  </div>
   <footer class="muted">Adapted from withings-sync (MIT).</footer>
 </main>
 <script>
   (function () {
     'use strict';
 
+    // Off until the in-app code entry is tested: the page only shows the code to copy. Set it to true
+    // to forward the browser to Hearth's local listener again.
+    var AUTO_FORWARD = false;
     var FORWARD_BASE = 'http://localhost:8765/withings/callback';
     var params = new URLSearchParams(window.location.search);
 
@@ -260,6 +334,13 @@
     }
 
     showState('state-code');
+    if (!AUTO_FORWARD) {
+      ['forwarding', 'not-forwarded', 'cannot-connect', 'continue-row'].forEach(function (id) {
+        byId(id).remove();
+      });
+      return;
+    }
+    byId('paste-hint').remove();
     if (isBackForward() || alreadyForwarded()) {
       showNotForwarded();
       return;
