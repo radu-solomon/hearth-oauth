@@ -204,7 +204,7 @@
     <h1>Your Withings authorization code</h1>
     <p id="forwarding">Sending you back to Hearth on this computer.</p>
     <p id="paste-hint">Copy this code and paste it into Hearth.</p>
-    <p id="not-forwarded" hidden>Hearth did not pick up the code automatically. Copy it and paste it into the <code>login withings</code> prompt, or press Continue to Hearth to try again.</p>
+    <p id="not-forwarded" hidden>Hearth did not pick up the code automatically. Copy it and paste it into Hearth (Settings &gt; Sources), or press Continue to Hearth to try again.</p>
     <label for="code">Authorization code</label>
     <div class="code-row">
       <input id="code" type="text" readonly spellcheck="false" autocomplete="off">
@@ -212,7 +212,7 @@
     </div>
     <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
     <p>The code expires in about 30 seconds.</p>
-    <p id="cannot-connect">If your browser cannot connect, go back to this page and paste the code into the <code>login withings</code> prompt.</p>
+    <p id="cannot-connect">If your browser cannot connect, go back to this page and paste the code into Hearth (Settings &gt; Sources).</p>
     <p id="continue-row"><a id="continue" class="button">Continue to Hearth</a></p>
   </section>
 
@@ -222,12 +222,12 @@
       <p>Withings returned the error <code id="error-value"></code>.</p>
       <p id="error-description" hidden></p>
     </div>
-    <p>Run <code>login withings</code> again to retry.</p>
+    <p>Start the Withings connection again from Settings &gt; Sources in Hearth.</p>
   </section>
 
   <section id="state-missing" hidden>
     <h1>No authorization code in this address</h1>
-    <p>Withings opens this page during <code>login withings</code> in Hearth; there is nothing to do here otherwise.</p>
+    <p>Withings opens this page when you connect Withings from Settings &gt; Sources in Hearth; there is nothing to do here otherwise.</p>
   </section>
 
   </div>
