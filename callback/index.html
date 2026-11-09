@@ -135,7 +135,8 @@
 
   <section id="state-code" hidden>
     <h1>Your Withings authorization code</h1>
-    <p>Sending you back to Hearth on this computer.</p>
+    <p id="forwarding">Sending you back to Hearth on this computer.</p>
+    <p id="not-forwarded" hidden>Hearth did not pick up the code automatically. Copy it and paste it into the <code>login withings</code> prompt, or press Continue to Hearth to try again.</p>
     <label for="code">Authorization code</label>
     <div class="code-row">
       <input id="code" type="text" readonly spellcheck="false" autocomplete="off">
@@ -223,9 +224,61 @@
       }, selectCode);
     });
 
+    // Browsers usually reload this page (instead of restoring it) when Back leaves a failed
+    // connection, so forward at most once per code: never on a back/forward load, and never for a
+    // code this tab already forwarded. Either check alone is enough; each copes with being blocked.
+    var FORWARDED_KEY = 'hearth-withings-forwarded-code';
+
+    function isBackForward() {
+      try {
+        var entry = window.performance.getEntriesByType('navigation')[0];
+        return Boolean(entry) && entry.type === 'back_forward';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function alreadyForwarded() {
+      try {
+        return window.sessionStorage.getItem(FORWARDED_KEY) === code;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function rememberForward() {
+      try {
+        window.sessionStorage.setItem(FORWARDED_KEY, code);
+      } catch (e) {
+        // Storage blocked: the back/forward check still stops a second forward.
+      }
+    }
+
+    function showNotForwarded() {
+      byId('forwarding').hidden = true;
+      byId('not-forwarded').hidden = false;
+    }
+
     showState('state-code');
-    // assign, not replace: if the local listener is not running, Back returns here to copy the code.
-    window.location.assign(forwardUrl);
+    if (isBackForward() || alreadyForwarded()) {
+      showNotForwarded();
+      return;
+    }
+    rememberForward();
+    // Back may restore this page from the back/forward cache, without running this script again.
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        showNotForwarded();
+      }
+    });
+    // Forward only after the load event: Chrome turns a navigation started before it into a
+    // replacement of this page's history entry, and Back would then skip this page. assign, not
+    // replace, for the same reason: if the local listener is not running, Back returns here.
+    window.addEventListener('load', function () {
+      window.setTimeout(function () {
+        window.location.assign(forwardUrl);
+      }, 0);
+    });
   })();
 </script>
 </body>
